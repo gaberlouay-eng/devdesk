@@ -50,9 +50,7 @@ export default function Header({ onRefresh }: HeaderProps) {
               <h1 className="text-2xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 dark:from-indigo-400 dark:to-purple-400 bg-clip-text text-transparent">
                 DevDesk
               </h1>
-              <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">
-                Created by Colmobil Development Team
-              </p>
+           
             </motion.div>
 
             {/* Actions */}
