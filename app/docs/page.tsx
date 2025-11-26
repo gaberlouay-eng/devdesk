@@ -363,7 +363,7 @@ export default function DocumentationPage() {
           {/* Footer */}
           <div className="mt-16 pt-8 border-t border-gray-200 dark:border-gray-800 text-center">
             <p className="text-sm text-gray-600 dark:text-gray-400">
-              Need more help? <Link href="https://github.com" className="text-indigo-600 dark:text-indigo-400 hover:underline">Visit our GitHub</Link>
+              Need more help? <Link href="https://github.com/gaberlouay-eng/devdesk" className="text-indigo-600 dark:text-indigo-400 hover:underline">Visit our GitHub</Link>
             </p>
           </div>
         </div>

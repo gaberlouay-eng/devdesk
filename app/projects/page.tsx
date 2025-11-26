@@ -289,7 +289,7 @@ export default function ProjectsPage() {
                   onChange={(e) =>
                     setFormData({ ...formData, repositoryUrl: e.target.value })
                   }
-                  placeholder="https://github.com/user/repo"
+                  placeholder="https://github.com/gaberlouay-eng/devdesk"
                   className="w-full px-4 py-2 rounded-xl bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:focus:ring-indigo-400 text-gray-900 dark:text-gray-100"
                 />
               </div>

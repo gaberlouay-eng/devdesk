@@ -259,7 +259,7 @@ export default function PrivacyPage() {
                 If you have questions about this privacy policy or how DevDesk handles your data, please contact us:
               </p>
               <ul className="space-y-2 text-gray-700 dark:text-gray-300">
-                <li>• <Link href="https://github.com" className="text-indigo-600 dark:text-indigo-400 hover:underline">GitHub Issues</Link></li>
+                <li>• <Link href="https://github.com/gaberlouay-eng/devdesk" className="text-indigo-600 dark:text-indigo-400 hover:underline">GitHub Issues</Link></li>
                 <li>• <Link href="/docs" className="text-indigo-600 dark:text-indigo-400 hover:underline">Documentation</Link></li>
               </ul>
             </div>
