@@ -1,0 +1,63 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+enum ItemType {
+  TASK
+  BUG
+}
+
+enum ItemStatus {
+  TODO
+  IN_PROGRESS
+  DONE
+}
+
+enum ItemPriority {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+model Project {
+  id            String      @id @default(cuid())
+  name          String      @db.VarChar(255)
+  description   String?     @db.Text
+  color         String?     @db.VarChar(7) // Hex color code
+  repositoryUrl String?     @db.VarChar(500) // GitHub/Bitbucket URL
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  items         Item[]
+
+  @@map("projects")
+}
+
+model Item {
+  id              String      @id @default(cuid())
+  type            ItemType
+  title           String      @db.VarChar(255)
+  description     String?     @db.Text
+  status          ItemStatus  @default(TODO)
+  priority        ItemPriority @default(MEDIUM)
+  projectId       String?     @db.VarChar(255)
+  estimatedHours  Float?       // Estimated duration in hours
+  actualHours     Float?       // Actual duration in hours
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  project         Project?    @relation(fields: [projectId], references: [id], onDelete: SetNull)
+
+  @@index([type])
+  @@index([status])
+  @@index([priority])
+  @@index([projectId])
+  @@map("items")
+}
