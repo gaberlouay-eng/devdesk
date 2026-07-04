@@ -1,12 +1,11 @@
 'use strict';
 
 // בדיקת שלב 2 מקצה לקצה: חילוץ שדות -> שמירה כטיוטה ב-SQLite -> אישור
-// (קבלת מספר תעודה רץ) -> יצירת PDF. משתמש בדוגמה הראשונה מ-samples.js.
+// (קבלת מספר תעודה רץ). יצירת PDF הוצאה משלב זה בינתיים (ראו README).
+// משתמש בדוגמה הראשונה מ-samples.js.
 
-const path = require('path');
 const { extractDeliveryInfo } = require('./extractor');
 const db = require('./db');
-const { generateDeliveryPdf } = require('./pdf');
 const samples = require('./samples');
 
 async function main() {
@@ -21,10 +20,6 @@ async function main() {
 
   const confirmed = db.confirmDelivery(draft.id);
   console.log('אושר, doc_number:', confirmed.doc_number, 'status:', confirmed.status);
-
-  const outputPath = path.join(__dirname, 'output', `delivery-${confirmed.doc_number}.pdf`);
-  await generateDeliveryPdf(confirmed, outputPath);
-  console.log('PDF נוצר:', outputPath);
 }
 
 main().catch((err) => {
