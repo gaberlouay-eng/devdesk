@@ -4,9 +4,11 @@ const fs = require('fs');
 const path = require('path');
 require('dotenv').config({ quiet: true });
 const Anthropic = require('@anthropic-ai/sdk');
+const { GoogleGenAI } = require('@google/genai');
 
 const KNOWN_ENTITIES_PATH = path.join(__dirname, 'known_entities.json');
-const DEFAULT_MODEL = process.env.ANTHROPIC_MODEL || 'claude-sonnet-5';
+const DEFAULT_ANTHROPIC_MODEL = process.env.ANTHROPIC_MODEL || 'claude-sonnet-5';
+const DEFAULT_GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
 const FIELDS = ['customer_name', 'material', 'quantity', 'destination', 'date', 'notes'];
 
 function loadKnownEntities() {
@@ -85,31 +87,70 @@ function parseExtractedJson(rawText) {
   return normalizeResult(parsed);
 }
 
-async function extractDeliveryInfo(text, options = {}) {
-  if (!text || !text.trim()) {
-    throw new Error('טקסט ההודעה ריק');
-  }
-
+async function callAnthropic(text, systemPrompt, options) {
   const apiKey = options.apiKey || process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
     throw new Error('ANTHROPIC_API_KEY חסר. הגדר אותו בקובץ .env (ראה .env.example)');
   }
 
-  const knownEntities = options.knownEntities || loadKnownEntities();
   const client = new Anthropic({ apiKey });
-
   const response = await client.messages.create({
-    model: options.model || DEFAULT_MODEL,
+    model: options.model || DEFAULT_ANTHROPIC_MODEL,
     max_tokens: 1024,
-    system: buildSystemPrompt(knownEntities),
+    system: systemPrompt,
     messages: [{ role: 'user', content: text }],
   });
 
-  const rawText = response.content
+  return response.content
     .filter((block) => block.type === 'text')
     .map((block) => block.text)
     .join('')
     .trim();
+}
+
+async function callGemini(text, systemPrompt, options) {
+  const apiKey = options.apiKey || process.env.GEMINI_API_KEY;
+  if (!apiKey) {
+    throw new Error('GEMINI_API_KEY חסר. הגדר אותו בקובץ .env (ראה .env.example)');
+  }
+
+  const client = new GoogleGenAI({ apiKey });
+  const response = await client.models.generateContent({
+    model: options.model || DEFAULT_GEMINI_MODEL,
+    contents: text,
+    config: {
+      systemInstruction: systemPrompt,
+      responseMimeType: 'application/json',
+    },
+  });
+
+  return (response.text || '').trim();
+}
+
+function resolveProvider(options) {
+  if (options.provider) return options.provider;
+  if (process.env.LLM_PROVIDER) return process.env.LLM_PROVIDER;
+  if (process.env.GEMINI_API_KEY) return 'gemini';
+  return 'anthropic';
+}
+
+async function extractDeliveryInfo(text, options = {}) {
+  if (!text || !text.trim()) {
+    throw new Error('טקסט ההודעה ריק');
+  }
+
+  const knownEntities = options.knownEntities || loadKnownEntities();
+  const systemPrompt = buildSystemPrompt(knownEntities);
+  const provider = resolveProvider(options);
+
+  let rawText;
+  if (provider === 'gemini') {
+    rawText = await callGemini(text, systemPrompt, options);
+  } else if (provider === 'anthropic') {
+    rawText = await callAnthropic(text, systemPrompt, options);
+  } else {
+    throw new Error(`ספק לא מוכר: ${provider} (אפשרויות: anthropic, gemini)`);
+  }
 
   return parseExtractedJson(rawText);
 }

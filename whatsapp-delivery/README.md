@@ -1,7 +1,17 @@
 # חילוץ הזמנות הובלה מווטסאפ — שלב 1: extractor.js
 
 מודול שמקבל טקסט חופשי (ערבית מדוברת / עברית מעורבת) של הזמנת הובלה, ומחזיר
-JSON מובנה עם פרטי ההזמנה, בעזרת Claude.
+JSON מובנה עם פרטי ההזמנה, בעזרת Claude או Gemini.
+
+## ספק המודל: Claude או Gemini
+
+התומך תומך בשני ספקים, נבחר לפי `.env`:
+
+- **Anthropic (Claude)** — `ANTHROPIC_API_KEY` מ-console.anthropic.com, בתשלום לפי שימוש.
+- **Gemini** — `GEMINI_API_KEY` מ-aistudio.google.com/apikey, עם free tier.
+
+קביעת הספק: `LLM_PROVIDER=anthropic` או `LLM_PROVIDER=gemini` ב-`.env`.
+אם לא הוגדר - נבחר `gemini` אוטומטית אם `GEMINI_API_KEY` קיים, אחרת `anthropic`.
 
 ## התקנה
 
@@ -11,7 +21,7 @@ npm install
 cp .env.example .env
 ```
 
-ערכו את `.env` והכניסו את `ANTHROPIC_API_KEY` שלכם.
+ערכו את `.env` והכניסו את המפתח של הספק שבחרתם.
 
 ## הרצה
 
@@ -21,7 +31,7 @@ cp .env.example .env
 npm run test:parser
 ```
 
-הרצת 5 הודעות הדוגמה מול Claude בפועל (דורשת `ANTHROPIC_API_KEY` תקין ב-`.env`):
+הרצת 5 הודעות הדוגמה מול המודל בפועל (דורשת מפתח API תקין ב-`.env` לספק שנבחר):
 
 ```bash
 npm run test:extractor
@@ -47,16 +57,16 @@ npm run test:extractor
 
 ## לקוחות וחומרים ידועים
 
-`known_entities.json` מכיל רשימת לקוחות וחומרים ידועים. הרשימה נשלחת ל-Claude
+`known_entities.json` מכיל רשימת לקוחות וחומרים ידועים. הרשימה נשלחת למודל
 כחלק מהפרומפט כדי שיזהה שמות למרות שגיאות כתיב/תעתיק מערבית (למשל "בקלאש" → "בקלש").
 עדכנו את הקובץ עם הלקוחות והחומרים האמיתיים שלכם.
 
 ## קבצים
 
-- `extractor.js` — הלוגיקה המרכזית (בניית הפרומפט, קריאה ל-Claude, פענוח JSON).
+- `extractor.js` — הלוגיקה המרכזית (בניית הפרומפט, קריאה ל-Claude/Gemini, פענוח JSON).
 - `known_entities.json` — רשימת לקוחות/חומרים ידועים לזיהוי fuzzy.
 - `samples.js` — 5 הודעות דוגמה לבדיקה.
-- `test-extractor.js` — מריץ את הדוגמאות מול Claude ומדפיס תוצאות.
+- `test-extractor.js` — מריץ את הדוגמאות מול המודל ומדפיס תוצאות.
 - `test-parser.js` — בדיקות יחידה ללוגיקת הפענוח, ללא צורך במפתח API.
 
 ## מה הלאה
