@@ -7,7 +7,9 @@
   "scripts": {
     "test:extractor": "node test-extractor.js",
     "test:parser": "node test-parser.js",
-    "test:transcribe": "node test-transcribe.js"
+    "test:transcribe": "node test-transcribe.js",
+    "test:whatsapp": "node test-whatsapp.js",
+    "start": "node whatsapp.js"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.68.0",
@@ -15,6 +17,8 @@
     "better-sqlite3": "^12.11.1",
     "dotenv": "^17.2.3",
     "nodejs-whisper": "^0.3.0",
-    "pdfmake": "^0.3.11"
+    "pdfmake": "^0.3.11",
+    "qrcode-terminal": "^0.12.0",
+    "whatsapp-web.js": "^1.34.7"
   }
 }
