@@ -1,0 +1,15 @@
+{
+  "name": "whatsapp-delivery",
+  "version": "0.1.0",
+  "private": true,
+  "description": "חילוץ הזמנות הובלה מהודעות ווטסאפ ויצירת תעודות משלוח",
+  "type": "commonjs",
+  "scripts": {
+    "test:extractor": "node test-extractor.js",
+    "test:parser": "node test-parser.js"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.68.0",
+    "dotenv": "^17.2.3"
+  }
+}
