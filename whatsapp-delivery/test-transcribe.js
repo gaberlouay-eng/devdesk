@@ -1,15 +1,17 @@
 'use strict';
 
-// בדיקות ל-transcribe.js. לא דורש קובץ אודיו אמיתי או API key:
-// - stripTimestamps נבדק כיחידה על פלט מדומה בסגנון whisper.cpp.
-// - זרימת ה-fallback (מקומי -> OpenAI) נבדקת על קובץ שקיים בפועל, ומסתמכת
-//   על כך ששני הנתיבים נכשלים בסביבה הזו (אין מודל/מפתח) כדי לוודא שהשרשור
-//   בין הנתיבים עצמו תקין ומחזיר שגיאה ברורה בסוף, ולא נתקע/משתתק.
+// בדיקות ל-transcribe.js.
+// - stripTimestamps ובדיקת קובץ לא קיים: לא דורשות רשת/מפתח.
+// - בדיקת "GEMINI_API_KEY חסר": מוחקת את המשתנה זמנית בתהליך הזה בלבד.
+// - בדיקה חיה (אופציונלית): אם GEMINI_API_KEY קיים, מתמללת בפועל את
+//   test-audio/hebrew-tts.wav (קובץ TTS רובוטי שנוצר עם espeak-ng - לא
+//   דיבור אנושי אמיתי, אבל מספיק כדי לוודא שהקריאה ל-Gemini + פענוח ה-JSON
+//   עובדים בפועל, לא רק בתיאוריה).
 
 const assert = require('assert');
 const fs = require('fs');
 const path = require('path');
-const { transcribeAudio, stripTimestamps } = require('./transcribe');
+const { transcribeAudio, transcribeGemini, stripTimestamps } = require('./transcribe');
 
 function run(name, fn) {
   try {
@@ -54,20 +56,42 @@ async function main() {
   const dummyPath = path.join(__dirname, '.tmp-test-audio.wav');
   fs.writeFileSync(dummyPath, Buffer.alloc(100));
 
-  await runAsync('ללא OPENAI_API_KEY וללא מודל מקומי -> נופל לניסיון OpenAI ומחזיר שגיאה ברורה', async () => {
-    delete process.env.OPENAI_API_KEY;
-    await assert.rejects(() => transcribeAudio(dummyPath), /OPENAI_API_KEY חסר/);
+  await runAsync('ללא GEMINI_API_KEY וללא מודל מקומי -> נופל לניסיון Gemini ומחזיר שגיאה ברורה', async () => {
+    const savedKey = process.env.GEMINI_API_KEY;
+    delete process.env.GEMINI_API_KEY;
+    try {
+      await assert.rejects(() => transcribeAudio(dummyPath), /GEMINI_API_KEY חסר/);
+    } finally {
+      if (savedKey) process.env.GEMINI_API_KEY = savedKey;
+    }
   });
 
-  await runAsync('provider=openai מדלג ישירות על המקומי', async () => {
-    delete process.env.OPENAI_API_KEY;
-    await assert.rejects(
-      () => transcribeAudio(dummyPath, { provider: 'openai' }),
-      /OPENAI_API_KEY חסר/
-    );
+  await runAsync('provider=gemini מדלג ישירות על המקומי', async () => {
+    const savedKey = process.env.GEMINI_API_KEY;
+    delete process.env.GEMINI_API_KEY;
+    try {
+      await assert.rejects(
+        () => transcribeAudio(dummyPath, { provider: 'gemini' }),
+        /GEMINI_API_KEY חסר/
+      );
+    } finally {
+      if (savedKey) process.env.GEMINI_API_KEY = savedKey;
+    }
   });
 
   fs.unlinkSync(dummyPath);
+
+  const liveAudioPath = path.join(__dirname, 'test-audio', 'hebrew-tts.wav');
+  if (process.env.GEMINI_API_KEY && fs.existsSync(liveAudioPath)) {
+    await runAsync('בדיקה חיה: תמלול בפועל מול Gemini', async () => {
+      const result = await transcribeGemini(liveAudioPath, { provider: 'gemini' });
+      console.log('  תמלול:', result);
+      assert.ok(result.text.length > 0, 'התמלול לא יכול להיות ריק');
+    });
+  } else {
+    console.log('(דילוג על הבדיקה החיה - חסר GEMINI_API_KEY או קובץ test-audio/hebrew-tts.wav)');
+  }
+
   console.log('\nכל בדיקות התמלול הושלמו.');
 }
 
