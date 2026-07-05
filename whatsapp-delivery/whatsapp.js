@@ -42,12 +42,17 @@ function getAllowedPhoneNumbers() {
     .filter(Boolean);
 }
 
-// מנסה לזהות את מספר הטלפון האמיתי של השולח דרך getContact() (עובד גם
-// לאנשי קשר עם JID מסוג @lid), ונופל בחזרה למספר הגולמי מתוך msg.from.
+// מנסה לזהות את מספר הטלפון האמיתי של השולח, גם כשה-JID של השולח הוא
+// מסוג @lid (מזהה מקושר, לא מספר גולמי). contact.id.user הוא השדה שמוחלף
+// בפועל למספר הטלפון האמיתי עבור אנשי קשר מסוג lid (בתוך whatsapp-web.js,
+// getContactModel מחליף את res.id ב-contact.phoneNumber כשהמיפוי ידוע) -
+// contact.number (מבוסס userid) נשאר על ספרות ה-lid עצמן ולא אמין כאן.
 async function resolveSenderNumber(msg) {
   if (typeof msg.getContact === 'function') {
     try {
       const contact = await msg.getContact();
+      const idUser = contact && contact.id && contact.id.user;
+      if (idUser) return normalizePhone(idUser);
       if (contact && contact.number) return normalizePhone(contact.number);
     } catch (err) {
       // מתעלם, נופל לזיהוי מה-JID הגולמי
@@ -83,7 +88,7 @@ async function handleIncomingMessage(msg, deps = {}) {
   if (allowedNumbers.length > 0) {
     const senderNumber = await resolveSender(msg);
     if (!allowedNumbers.includes(senderNumber)) {
-      console.log(`[whatsapp] הודעה ממספר ${senderNumber} לא ברשימת המספרים המורשים (ALLOWED_PHONE_NUMBERS), מתעלם`);
+      console.log(`[whatsapp] הודעה ממספר ${senderNumber} (JID: ${msg.from}) לא ברשימת המספרים המורשים (ALLOWED_PHONE_NUMBERS), מתעלם`);
       return null;
     }
   }
