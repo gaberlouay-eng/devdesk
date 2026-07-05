@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ניהול הזמנות הובלה</title>
+<style>
+  :root { color-scheme: light dark; }
+  body {
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    max-width: 960px;
+    margin: 2rem auto;
+    padding: 0 1rem;
+  }
+  h1 { font-size: 1.4rem; margin-bottom: 1rem; }
+  .tabs { display: flex; gap: 0.5rem; margin-bottom: 1rem; }
+  .tabs button {
+    padding: 0.4rem 1rem;
+    border: 1px solid #8884;
+    border-radius: 6px;
+    background: transparent;
+    cursor: pointer;
+    font-size: 0.95rem;
+  }
+  .tabs button.active { background: #2563eb; color: white; border-color: #2563eb; }
+  table { width: 100%; border-collapse: collapse; }
+  th, td { border-bottom: 1px solid #8883; padding: 0.5rem; text-align: right; vertical-align: top; font-size: 0.9rem; }
+  input {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 0.3rem;
+    border: 1px solid #8886;
+    border-radius: 4px;
+    font: inherit;
+    background: transparent;
+    color: inherit;
+  }
+  button.confirm {
+    background: #15803d;
+    color: white;
+    border: none;
+    padding: 0.4rem 0.8rem;
+    border-radius: 4px;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  button.confirm:hover { background: #14652f; }
+  .empty { color: #888; padding: 2rem 0; text-align: center; }
+  .muted { color: #888; font-size: 0.8rem; max-width: 220px; }
+</style>
+</head>
+<body>
+  <h1>ניהול הזמנות הובלה</h1>
+  <div class="tabs">
+    <button id="tab-draft" class="active" type="button">טיוטות</button>
+    <button id="tab-confirmed" type="button">מאושרות</button>
+  </div>
+  <div id="content">טוען...</div>
+
+<script>
+  const FIELDS = ['customer_name', 'material', 'quantity', 'destination', 'date', 'notes'];
+  const FIELD_LABELS = {
+    customer_name: 'לקוח', material: 'חומר', quantity: 'כמות',
+    destination: 'יעד', date: 'תאריך', notes: 'הערות',
+  };
+  let currentStatus = 'draft';
+
+  function escapeHtml(value) {
+    return String(value ?? '').replace(/[&<>"']/g, (ch) => ({
+      '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+    }[ch]));
+  }
+
+  async function load() {
+    const res = await fetch(`/api/deliveries?status=${currentStatus}`);
+    const items = await res.json();
+    render(items);
+  }
+
+  function render(items) {
+    const content = document.getElementById('content');
+    if (items.length === 0) {
+      content.innerHTML = '<div class="empty">אין רשומות</div>';
+      return;
+    }
+
+    const isDraft = currentStatus === 'draft';
+
+    const headerCells = FIELDS.map((f) => `<th>${FIELD_LABELS[f]}</th>`).join('');
+    const extraHeader = isDraft ? '<th></th>' : '<th>מס. תעודה</th>';
+
+    const rows = items.map((item) => {
+      const cells = FIELDS.map((f) => {
+        if (!isDraft) return `<td>${escapeHtml(item[f]) || '—'}</td>`;
+        return `<td><input data-id="${item.id}" data-field="${f}" value="${escapeHtml(item[f])}"></td>`;
+      }).join('');
+      const extra = isDraft
+        ? `<td><button class="confirm" data-id="${item.id}" type="button">אשר</button></td>`
+        : `<td>#${item.doc_number}</td>`;
+      return `<tr>${cells}<td class="muted">${escapeHtml(item.raw_message)}</td>${extra}</tr>`;
+    }).join('');
+
+    content.innerHTML = `
+      <table>
+        <thead><tr>${headerCells}<th>הודעה מקורית</th>${extraHeader}</tr></thead>
+        <tbody>${rows}</tbody>
+      </table>`;
+
+    if (!isDraft) return;
+
+    content.querySelectorAll('input').forEach((input) => {
+      input.addEventListener('change', async (e) => {
+        const { id, field } = e.target.dataset;
+        await fetch(`/api/deliveries/${id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ [field]: e.target.value }),
+        });
+      });
+    });
+
+    content.querySelectorAll('button.confirm').forEach((btn) => {
+      btn.addEventListener('click', async (e) => {
+        await fetch(`/api/deliveries/${e.target.dataset.id}/confirm`, { method: 'POST' });
+        load();
+      });
+    });
+  }
+
+  function switchTab(status) {
+    currentStatus = status;
+    document.getElementById('tab-draft').classList.toggle('active', status === 'draft');
+    document.getElementById('tab-confirmed').classList.toggle('active', status === 'confirmed');
+    load();
+  }
+
+  document.getElementById('tab-draft').addEventListener('click', () => switchTab('draft'));
+  document.getElementById('tab-confirmed').addEventListener('click', () => switchTab('confirmed'));
+
+  load();
+</script>
+</body>
+</html>

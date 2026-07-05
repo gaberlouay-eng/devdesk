@@ -10,13 +10,15 @@
     "test:transcribe": "node test-transcribe.js",
     "test:whatsapp": "node test-whatsapp.js",
     "start": "node whatsapp.js",
-    "review": "node review.js"
+    "review": "node review.js",
+    "web": "node web.js"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.68.0",
     "@google/genai": "^2.10.0",
     "better-sqlite3": "^12.11.1",
     "dotenv": "^17.2.3",
+    "express": "^5.2.1",
     "nodejs-whisper": "^0.3.0",
     "pdfmake": "^0.3.11",
     "qrcode-terminal": "^0.12.0",

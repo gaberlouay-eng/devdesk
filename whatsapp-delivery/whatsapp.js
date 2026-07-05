@@ -29,6 +29,33 @@ function guessExtension(mimetype) {
   return MIME_EXTENSIONS[mimetype] || MIME_EXTENSIONS[base] || '.ogg';
 }
 
+function normalizePhone(value) {
+  return String(value || '').replace(/\D/g, '');
+}
+
+// מחזיר את רשימת המספרים המורשים (ALLOWED_PHONE_NUMBERS, מופרדים בפסיק)
+// כמחרוזות ספרות בלבד. רשימה ריקה = בלי סינון, מאזין לכל השיחות.
+function getAllowedPhoneNumbers() {
+  return String(process.env.ALLOWED_PHONE_NUMBERS || '')
+    .split(',')
+    .map(normalizePhone)
+    .filter(Boolean);
+}
+
+// מנסה לזהות את מספר הטלפון האמיתי של השולח דרך getContact() (עובד גם
+// לאנשי קשר עם JID מסוג @lid), ונופל בחזרה למספר הגולמי מתוך msg.from.
+async function resolveSenderNumber(msg) {
+  if (typeof msg.getContact === 'function') {
+    try {
+      const contact = await msg.getContact();
+      if (contact && contact.number) return normalizePhone(contact.number);
+    } catch (err) {
+      // מתעלם, נופל לזיהוי מה-JID הגולמי
+    }
+  }
+  return normalizePhone((msg.from || '').split('@')[0]);
+}
+
 function saveMediaToTempFile(media) {
   fs.mkdirSync(TEMP_AUDIO_DIR, { recursive: true });
   const ext = guessExtension(media.mimetype);
@@ -43,12 +70,22 @@ async function handleIncomingMessage(msg, deps = {}) {
   const extract = deps.extractDeliveryInfo || extractDeliveryInfo;
   const transcribe = deps.transcribeAudio || transcribeAudio;
   const database = deps.db || db;
+  const resolveSender = deps.resolveSenderNumber || resolveSenderNumber;
 
   if (msg.fromMe) return null;
 
   if (typeof msg.getChat === 'function') {
     const chat = await msg.getChat();
     if (chat && chat.isGroup) return null; // שימוש אישי: מתעלם מקבוצות כברירת מחדל
+  }
+
+  const allowedNumbers = deps.allowedPhoneNumbers || getAllowedPhoneNumbers();
+  if (allowedNumbers.length > 0) {
+    const senderNumber = await resolveSender(msg);
+    if (!allowedNumbers.includes(senderNumber)) {
+      console.log(`[whatsapp] הודעה ממספר ${senderNumber} לא ברשימת המספרים המורשים (ALLOWED_PHONE_NUMBERS), מתעלם`);
+      return null;
+    }
   }
 
   let rawText;
@@ -134,4 +171,4 @@ if (require.main === module) {
   client.initialize();
 }
 
-module.exports = { createClient, handleIncomingMessage };
+module.exports = { createClient, handleIncomingMessage, getAllowedPhoneNumbers, resolveSenderNumber };

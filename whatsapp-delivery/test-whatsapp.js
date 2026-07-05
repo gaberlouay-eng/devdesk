@@ -95,6 +95,36 @@ async function main() {
     assert.strictEqual(result, null);
   });
 
+  await runAsync('ALLOWED_PHONE_NUMBERS מוגדר, מספר לא ברשימה -> מתעלם', async () => {
+    const msg = mockTextMessage('טקסט כלשהו', { from: '972599999999@c.us' });
+    const result = await handleIncomingMessage(msg, {
+      db: testDbAdapter,
+      allowedPhoneNumbers: ['972500000000'],
+    });
+    assert.strictEqual(result, null);
+  });
+
+  await runAsync('ALLOWED_PHONE_NUMBERS מוגדר, מספר ברשימה -> מעובד', async () => {
+    const msg = mockTextMessage('שלום, מדבר בדרי, אני צריך 20 טון חול למחר לאתר בניה ברמלה');
+    const draft = await handleIncomingMessage(msg, {
+      db: testDbAdapter,
+      allowedPhoneNumbers: ['972500000000'],
+    });
+    assert.ok(draft, 'הייתה אמורה להישמר טיוטה - המספר ברשימה המורשית');
+  });
+
+  await runAsync('ALLOWED_PHONE_NUMBERS + resolveSenderNumber מותאם (למשל JID מסוג @lid) -> מעובד', async () => {
+    const msg = mockTextMessage('שלום, מדבר בדרי, אני צריך 20 טון חול למחר לאתר בניה ברמלה', {
+      from: '194605119201444@lid',
+    });
+    const draft = await handleIncomingMessage(msg, {
+      db: testDbAdapter,
+      allowedPhoneNumbers: ['972500000000'],
+      resolveSenderNumber: async () => '972500000000',
+    });
+    assert.ok(draft, 'הייתה אמורה להישמר טיוטה - resolveSenderNumber זיהה מספר מורשה למרות JID מסוג @lid');
+  });
+
   const voiceFixture = path.join(__dirname, 'test-audio', 'hebrew-tts.wav');
   if (process.env.GEMINI_API_KEY && fs.existsSync(voiceFixture)) {
     await runAsync('הודעה קולית (ptt) -> תמלול אמיתי -> חילוץ אמיתי -> טיוטה', async () => {
