@@ -9,7 +9,8 @@
     "test:parser": "node test-parser.js",
     "test:transcribe": "node test-transcribe.js",
     "test:whatsapp": "node test-whatsapp.js",
-    "start": "node whatsapp.js"
+    "start": "node whatsapp.js",
+    "review": "node review.js"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.68.0",
